@@ -5,15 +5,25 @@ import base64
 from io import BytesIO
 from PIL import Image
 import time
+import os
 
 # Initialize Flask app
 app = Flask(__name__)
 
 # Load the Stable Diffusion pipeline from pre-downloaded files
 model_path = "./model/"
+
+print("Loading model from", model_path)
 pipe = StableDiffusionPipeline.from_pretrained(
     model_path, torch_dtype=torch.float16
 ).to("cuda")
+
+
+import torch
+if not torch.cuda.is_available():
+    raise Exception("CUDA is not available. Please install CUDA and cuDNN.")
+
+print("Torch device name: " + torch.cuda.get_device_name(0))  # Should print your GPU name
 
 
 @app.route("/generate", methods=["POST"])
@@ -27,7 +37,7 @@ def generate_image():
         start_time = time.time()
         # Generate the image
         with torch.no_grad():
-            image = pipe(prompt, num_inference_steps=50).images[0]
+            image = pipe(prompt, num_inference_steps=20).images[0]
         end_time = time.time()
         generation_time = end_time - start_time
 
@@ -43,4 +53,5 @@ def generate_image():
 
 # Run the app
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.getenv("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)

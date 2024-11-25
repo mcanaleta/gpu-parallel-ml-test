@@ -1,24 +1,32 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # Install necessary system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends &&
-    rm -rf /var/lib/apt/lists/*
+RUN apt-get update 
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install them
+# Download the model
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+RUN pip install diffusers transformers
+
+COPY download_model.py .
+RUN python download_model.py
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+
+# Copy requirements and install them
+
 
 # Copy the application files
 COPY . .
 
-# Download the model
-RUN python model/download_model.py
 
 # Expose the port for Flask
-EXPOSE 5000
+ENV PORT 8080
+EXPOSE $PORT
 
 # Run the app
 CMD ["python", "app.py"]
